@@ -64,7 +64,7 @@ def train_model(args, model, device, train_data, eval_data, run_eval_fn):
     output = model(**data)
     loss = output['loss']
     return loss.mean(), data['input_ids'].size(0)
-  
+
   adv_modules = hook_sift_layer(model, hidden_size=model.config.hidden_size, learning_rate=args.vat_learning_rate, init_perturbation=args.vat_init_perturbation)
   adv = AdversarialLearner(model, adv_modules)
   def adv_loss_fn(trainer, model, data):
@@ -288,7 +288,7 @@ def main(args):
   run_eval_fn = task.run_eval_fn()
   if run_eval_fn is None:
     run_eval_fn = run_eval
-  
+
   if args.do_eval:
     run_eval(args, model, device, eval_data, prefix=args.tag)
 
@@ -439,22 +439,30 @@ def build_argument_parser():
 
   return parser
 
-if __name__ == "__main__":
-  parser = build_argument_parser()
-  parser.parse_known_args()
 
-  args = parser.parse_args()
-  os.makedirs(args.output_dir, exist_ok=True)
-  logger = set_logger(args.task_name, os.path.join(args.output_dir, 'training_{}.log'.format(args.task_name)))
-  logger.info(args)
-  try:
-    main(args)
-  except Exception as ex:
+def run(args):
+    global logger
+    os.makedirs(args.output_dir, exist_ok=True)
+    logger = set_logger(args.task_name, os.path.join(args.output_dir, 'training_{}.log'.format(args.task_name)))
+    logger.info(args)
+    print('HELLO WORLD')
     try:
-      logger.exception(f'Uncatched exception happened during execution.')
-      import atexit
-      atexit._run_exitfuncs()
-    except:
-      pass
-    kill_children()
-    os._exit(-1)
+        main(args)
+    except Exception as ex:
+        try:
+            logger.exception(f'Uncatched exception happened during execution.')
+            print(ex)
+            exit(-1)
+            import atexit
+            atexit._run_exitfuncs()
+        except:
+            pass
+        kill_children()
+        os._exit(-1)
+
+logger = None
+if __name__ == "__main__":
+    parser = build_argument_parser()
+    parser.parse_known_args()
+    args = parser.parse_args()
+    run(args)
