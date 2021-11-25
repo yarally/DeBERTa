@@ -1,77 +1,89 @@
+import json
+
 import DeBERTa.apps.run as deberta
+import sys
+
+INITIAL_SEED = 42
+MODEL_CONFIG_FILE = '/tmp/DeBERTa/tmp_model_config.json'
+# Unchangeable...
+# max_position_embeddings
+# vocab_size
+# hidden_size
+# intermediate_size
+# num_attention_heads
+# num_hidden_layers
 
 
-class ExperimentConfig(object):
-    def __init__(self, dictionary):
-        self.__dict__.update(dictionary)
+def set_variables(args, experiment_config, index):
+    """
+    ### DeBERTa Variables
+    # max_seq_length
+    # model_config
+    # cls_drop_out
+    # vocab_type
+    # vat_lambda
+    # vat_learning_rate*
+    # vat_init_perturbation
+    # vat_loss_fn*
 
-def set_variables(args):
-    args['eval_batch_size'] = 128
-    args['predict_batch_size'] = 128
-    args['train_batch_size'] = 8
-    args['scale_steps'] = 250
-    args['loss_scale'] = 16384
-    args['accumulative_update'] = 1
-    args['num_train_epochs'] = 1
-    args['warmup'] = 100
-    args['learning_rate'] = 2e-5
-    args['max_seq_length'] = 128
-    args['cls_drop_out'] = 0.15
-    args['vat_lambda'] = 0
-    args['vat_learning_rate'] = 1e-4
-    args['vat_init_perturbation'] = 1e-2
-    args['vat_loss_fn'] = 'symmetric-kl'
+    ### Training variables
+    # train_batch_size
+    # accumulative_update
+    # seed
 
+    ### Optimizer variables
+    # lookahead_k
+    # lookahead_alpha
+    # with_radam
+    # opt_type
+    # learning_rate*
+    # scale_steps
+    # loss_scale*
+    # dump_interval
+    # weight_decay
+    # max_grad_norm*
+    # adam_beta1*
+    # adam_beta2*
+    # lr_schedule_ends
+    # epsilon
+    # fp16*
+    # warmup_proportion
+    # lr_schedule
+    """
+    with open(MODEL_CONFIG_FILE, 'w') as outfile:
+        json.dump(experiment_config['model_config'], outfile)
 
-def set_constants(args, task_name):
-    args['seed'] = 42
-    args['vocab_path'] = None
-    args['vocab_type'] = 'gpt2'
-    args['task_name'] = task_name
-    args['data_dir'] = '/tmp/DeBERTa/glue_tasks/' + task_name
-    args['output_dir'] = '/tmp/DeBERTa/exps/' + task_name
-    args['do_train'] = True
-    args['do_eval'] = False
-    args['do_predict'] = False
-    args['init_model'] = 'base'
-    args['tag'] = 'hp-tuning'
-    args['debug'] = False
-    args['pre_trained'] = None
-    args['n_gpu'] = 1
-    args['workers'] = 1
-
-
-def set_model_config(args):
-    args['model_config'] = None
-
-
-def set_optimizer_arguments(args):
-    args['dump_interval'] = 10000
-    args['weight_decay'] = 0.01
-    args['max_grad_norm'] = 1
-    args['adam_beta1'] = 0.9
-    args['adam_beta2'] = 0.999
-    args['lr_schedule_ends'] = 0
-    args['epsilon'] = 1e-6
-    args['fp16'] = False
-    args['warmup_proportion'] = 0.1
-    args['lr_schedule'] = 'warmup_linear'
+    setattr(args, 'seed', INITIAL_SEED + index)
+    for k, v in experiment_config['custom_config'].items():
+        setattr(args, k, v)
 
 
-def main():
-    args = {}
-    set_variables(args)
-    set_constants(args, 'CoLA')
-    set_model_config(args)
-    set_optimizer_arguments(args)
-    deberta.run(ExperimentConfig(args))
+def set_constants(parser, task_name):
+    # Dirty Hack to work around required command line arguments
+    sys.argv.extend(['--task_name', task_name, '--output_dir', f'/tmp/DeBERTa/exps/{task_name}'])
+
+    parser.set_defaults(
+        data_dir=f'/tmp/DeBERTa/glue_tasks/{task_name}',
+        model_config=MODEL_CONFIG_FILE,
+        do_train=True,
+        tag='hp-tuning',
+        init_model='base',
+        num_train_epochs=1,
+        dump_interval=2048,
+    )
+
+
+def main(task_name, experiment_file):
+    parser = deberta.build_argument_parser()
+    set_constants(parser, task_name)
+    parser.parse_known_args()
+    args = parser.parse_args()
+    with open(experiment_file) as f:
+        experiments = json.load(f)
+    for i, experiment in enumerate(experiments):
+        set_variables(args, experiment, i)
+        deberta.run(args)
 
 
 if __name__ == '__main__':
-    # AFTER REBOOT:
-    # cache_dir = /tmp/DeBERTa/
-    # cd experiments/glue
-    # ./download_data.sh  $cache_dir/glue_tasks
-    main()
-
-
+    main('CoLA', 'test_experiment_config.json')
