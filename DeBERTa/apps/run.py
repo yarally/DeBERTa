@@ -154,7 +154,6 @@ def calc_metrics(predicts, labels, eval_loss, eval_item, eval_results, args, nam
         logger.info("  %s = %s", key, str(result[key]))
         writer.write("%s = %s\n" % (key, str(result[key])))
         tb_metrics[f'{name}/{key}'] = result[key]
-
     if predict_fn is not None:
       predict_fn(predicts, args.output_dir, name, prefix)
     else:
@@ -446,7 +445,7 @@ def run(args):
     logger = set_logger(args.task_name, os.path.join(args.output_dir, 'training_{}.log'.format(args.task_name)))
     logger.info(args)
     try:
-        main(args)
+        return main(args)
     except Exception as ex:
         try:
             logger.exception(f'Uncatched exception happened during execution.')

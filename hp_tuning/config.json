@@ -1,11 +1,11 @@
 {
   "constants": {
-    "initializer_range": 0.02112,
     "train_batch_size": 8
   },
   "experiments": {
     "learning_rate": [5e-6, 3e-5],
-    "weight_decay": [0.01, 0.2]
+    "adam_beta1": [0.2, 1],
+    "adam_beta2": [0.9, 1]
   },
-  "epochs": 2
+  "epochs": 8
 }
