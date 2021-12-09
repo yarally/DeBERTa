@@ -1,17 +1,18 @@
 import json
 import os
+import random
 import subprocess
 import sys
-import random
 import time
 from warnings import catch_warnings, simplefilter
 
 from scipy.stats import qmc, norm
 from sklearn.gaussian_process import GaussianProcessRegressor
 
+import DeBERTa.apps.run as DeBERTa
+
 ROOT_DIR = ''.join(f'{p}/' for p in os.path.dirname(os.path.abspath(__file__)).split('/')[:-1])[:-1]
 sys.path.append(ROOT_DIR)
-import DeBERTa.apps.run as DeBERTa
 
 INITIAL_SEED = 123456789
 MODEL_CONFIG_FILE = '/tmp/DeBERTa/tmp_model_config.json'
@@ -80,7 +81,7 @@ def run_random_experiments(args):
 
 def run_grid_experiments(args):
     print('Applying a grid search strategy...')
-    pass
+    return args
 
 
 def run_bayesian_pi_experiments(args):
